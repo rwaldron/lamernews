@@ -40,7 +40,7 @@ function submit() {
             if (r.status == "ok") {
                 window.location.href = "/news/"+r.news_id;
             } else {
-                $("#errormsg").html(r.error)
+                $("#errormsg").html(r.error);
             }
         }
     });
@@ -62,7 +62,7 @@ function update_profile() {
             if (r.status == "ok") {
                 window.location.reload();
             } else {
-                $("#errormsg").html(r.error)
+                $("#errormsg").html(r.error);
             }
         }
     });
@@ -101,59 +101,51 @@ function post_comment() {
     return false;
 }
 
+function processVote( id, direction ) {
+  var data = {
+      news_id: id,
+      vote_type: direction,
+      apisecret: apisecret
+  };
+  $.ajax({
+      type: "POST",
+      url: "/api/votenews",
+      data: data,
+      success: function(reply) {
+          var r = jQuery.parseJSON(reply),
+              elem = $("#"+id),
+              children = elem.children();
+
+          if (r.status == "ok") {
+            children.eq(0).addClass("class", direction==="up" ? "voted" : "disabled");
+            children.eq(3).addClass("class", direction==="up" ? "disabled" : "voted");
+          } else {
+              alert("Vote not registered: "+r.error);
+          }
+      }
+  });
+}
+
 // Install the onclick event in all news arrows the user did not voted already.
 $(document).ready(function() {
-    $('news').each(function(i,news) {
-        var news_id = news.id;
-        var up_class = news.children[0].getAttribute("class");
-        if (!up_class) {
-            news.children[0].onclick=function() {
-                var data = {
-                    news_id: news_id,
-                    vote_type: "up",
-                    apisecret: apisecret
-                };
-                $.ajax({
-                    type: "POST",
-                    url: "/api/votenews",
-                    data: data,
-                    success: function(reply) {
-                        var r = jQuery.parseJSON(reply);
-                        if (r.status == "ok") {
-                            n = $("#"+news_id)[0];
-                            n.children[0].setAttribute("class","voted");
-                            n.children[3].setAttribute("class","disabled");
-                        } else {
-                            alert("Vote not registered: "+r.error);
-                        }
-                    }
-                });
-            }
+    $('news').each(function(i, news) {
+
+        var $this = $(news),
+            children = $this.children(),
+            upClass = children.eq(0).attr("class"),
+            downClass = children.eq(3).attr("class"),
+            direction;
+
+        if (!upClass) {
+            direction = "up";
         }
-        var down_class = news.children[3].getAttribute("class");
-        if (!down_class) {
-            news.children[3].onclick=function() {
-                var data = {
-                    news_id : news_id,
-                    vote_type: "down",
-                    apisecret: apisecret
-                };
-                $.ajax({
-                    type: "POST",
-                    url: "/api/votenews",
-                    data: data,
-                    success: function(reply) {
-                        var r = jQuery.parseJSON(reply);
-                        if (r.status == "ok") {
-                            n = $("#"+news_id)[0];
-                            n.children[0].setAttribute("class","disabled");
-                            n.children[3].setAttribute("class","voted");
-                        } else {
-                            alert("Vote not registered: "+r.error);
-                        }
-                    }
-                });
-            }
+
+        if (!downClass) {
+            direction = "down";
+        }
+
+        if (direction) {
+            processVote(news.id, direction);
         }
     });
 });
